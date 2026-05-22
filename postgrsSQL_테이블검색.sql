@@ -19,13 +19,21 @@ JOIN pg_namespace n ON c.relnamespace = n.oid
 WHERE a.attnum > 0
 AND NOT a.attisdropped
 AND c.relkind = 'r'
-AND c.relname = ''         -- 테이블ID
--- AND obj_description(c.oid) = ''          -- 테이블명
--- AND a.attname = ''                       -- 컬럼ID
+and N.nspname not in('' ,'') -- own 지정 
+--AND c.relname = ''         -- 테이블ID
+-- AND obj_description(c.oid) like '%다국어%'          -- 테이블명
+-- AND a.attname = ''       
+and a.attname    =' '              -- 컬럼ID
 -- AND col_description(c.oid, a.attnum) = '' -- 컬럼명
-ORDER BY a.attnum, n.nspname, c.relname;
+group by n.nspname ,c.relname ,c.oid, a.attname ,a.attnum
+ORDER BY n.nspname, c.relname
+--ORDER BY a.attnum, n.nspname, c.relname
+;
 
-/* DB LINK 조회 */
+select  * 
+ from pg_attribute ;
+/* 
+ * DB LINK 조회 */
 -- PostgreSQL은 pg_foreign_server (FDW) 방식 사용
 SELECT
 fs.srvname AS "서버명",
@@ -59,6 +67,29 @@ FROM information_schema.routines
 WHERE routine_type = 'PROCEDURE'
 AND routine_name = lower('프로시저명');  -- PostgreSQL은 소문자 기준
 
+
+▶ 권한조회; 
+SELECT grantee, privilege_type
+FROM information_schema.role_usage_grants
+WHERE object_schema = '스키마'
+  AND object_name = '테이블명';
+
+
+
+▶ 권한부여; 
+-- 테이블 소유자(superuser)가 앞으로 만드는  테이블에 자동 권한 부여
+ALTER DEFAULT PRIVILEGES IN SCHEMA 스키마
+    GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO 유처;
+
+
+
+
+-- 시퀀스 권한부여 
+GRANT USAGE ON SEQUENCE 테이블 TO 유저;
+
+ALTER DEFAULT PRIVILEGES IN SCHEMA 스키마
+GRANT USAGE, SELECT, UPDATE ON SEQUENCES TO 유저;
+
 /* 프로시저 실행 */
 CALL 프로시저명('202303,5,,,,,,,,', 'TEST_MAN');
 
@@ -81,7 +112,7 @@ pg_get_functiondef(p.oid) AS "소스"
 FROM pg_proc p
 JOIN pg_namespace n ON p.pronamespace = n.oid
 WHERE n.nspname != 'pg_catalog'
-AND pg_get_functiondef(p.oid) ILIKE '%검색키워드%'  -- Oracle의 TEXT LIKE 대응
+--AND pg_get_functiondef(p.oid) ILIKE '%검색키워드%'  -- Oracle의 TEXT LIKE 대응
 AND p.prokind = 'f';  -- 'f'=FUNCTION, 'p'=PROCEDURE
 
 /* 과거 데이터 조회 */
